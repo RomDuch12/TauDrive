@@ -17,14 +17,14 @@ partagent par *Paramètres ▸ Exporter les réglages*.
 et son centre — c'est ainsi qu'on le lit sur un plan :
 
     "postes": ["HAUT", "MILIEU", "BAS"],
-    "entraxe_mm": 23.0,
-    "centre_y_mm": 0.2
+    "entraxe_mm": 20.0,
+    "centre_y_mm": 0.5
 
-Les trois ordonnées s'en déduisent : +23,2 / +0,2 / −22,8. Un montage
+Les trois ordonnées s'en déduisent : +20,5 / +0,5 / −19,5. Un montage
 **irrégulier** donne ses positions une à une, et l'entraxe est alors
 ignoré :
 
-    "positions_y_mm": [23.2, 0.2, -22.8]
+    "positions_y_mm": [20.5, 0.5, -19.5]
 
 Les deux formes cohabitent : la première dit l'intention, la seconde
 couvre ce qui n'a pas d'intention régulière.
@@ -33,7 +33,7 @@ couvre ce qui n'a pas d'intention régulière.
 dommage :
 
     "positions_x_mm": [0.0, 0.4, 0.0],
-    "donnees": ["B000181", "", "B000190"]
+    "donnees": ["A000001", "", "A000010"]
 
 Le premier donne l'abscisse de chaque poste quand elles diffèrent —
 `x_mm` reste écrit, au milieu, pour la version d'avant. Le second est
@@ -55,16 +55,16 @@ import shutil
 #: Nom du fichier, à côté de `recettes.json`.
 FICHIER = 'montages.json'
 
-#: Le gabarit livré : le montage à trois DataMatrix en service, relevé
-#: sur `Datamatrix.taudrive`. Sert de valeur de repli si le fichier
-#: manque, et de modèle à qui veut en écrire un second.
+#: Le gabarit d'exemple du cœur libre : trois DataMatrix à 23 mm d'entraxe.
+#: Celui du montage en service à l'atelier vient de son plugin
+#: (`plugins.Api.set_montage`) — lire `livre()`, jamais `LIVRE`.
 LIVRE = {
     'nom': 'Montage 3 DataMatrix',
     'postes': ['HAUT', 'MILIEU', 'BAS'],
     'entraxe_mm': 23.0,
     'centre_y_mm': 0.2,
     'x_mm': 0.0,
-    'donnee': 'B000181',
+    'donnee': 'B000001',
     'code': {
         'kind': 'datamatrix',
         'largeur_mm': 15.0,
@@ -81,6 +81,24 @@ LIVRE = {
         'dy_mm': -3.9,
     },
 }
+
+
+def livre() -> dict:
+    """Le gabarit livré : celui du plugin de l'atelier, sinon l'exemple
+    du cœur. Une copie, que l'appelant peut modifier.
+
+    Sert de repli quand `montages.json` manque, complète un gabarit écrit
+    à la main et donne la référence proposée à la pose. Le gabarit du
+    plugin peut ne donner que ce qui change : le reste vient de l'exemple.
+    """
+    from . import plugins
+    plein = copy.deepcopy(LIVRE)
+    for cle, valeur in (plugins.REGISTRY.montage or {}).items():
+        if isinstance(valeur, dict) and isinstance(plein.get(cle), dict):
+            plein[cle].update(copy.deepcopy(valeur))
+        else:
+            plein[cle] = copy.deepcopy(valeur)
+    return plein
 
 
 #: Cadres admis autour d'un symbole de montage.
@@ -171,7 +189,7 @@ def proposees(gab: dict) -> list[str]:
     reprend `donnee`. C'est ce que montre le formulaire du montage au
     moment où on le pose.
     """
-    defaut = str(gab.get('donnee') or LIVRE['donnee'])
+    defaut = str(gab.get('donnee') or livre()['donnee'])
     par_poste = gab.get('donnees') or []
     out = []
     for i in range(len(gab.get('postes') or [])):
@@ -203,7 +221,7 @@ def verifier(gab: dict) -> dict:
 def _verifier(gab: dict) -> dict:
     if not isinstance(gab, dict):
         raise GabaritError('un gabarit doit être un objet')
-    plein = copy.deepcopy(LIVRE)
+    plein = livre()
     for cle, valeur in gab.items():
         if isinstance(valeur, dict) and isinstance(plein.get(cle), dict):
             plein[cle].update(valeur)
@@ -522,7 +540,7 @@ def depuis_formes(shapes, base: dict | None = None, *,
     proposera** — pas celle qu'il porte. Sinon elle est recalculée pour
     la taille du texte du haut, assez large pour la plus longue des
     références proposées : retenue sur « A1 », elle ferait rétrécir le
-    « B000181 » de la pose suivante — le défaut qu'avaient les plaques
+    « B000001 » de la pose suivante — le défaut qu'avaient les plaques
     (EX-224).
 
     Un montage **tourné** ne se relit pas : ses positions et la place de
@@ -632,6 +650,6 @@ def ecrire_livre_si_absent() -> pathlib.Path | None:
     if p.exists():
         return None
     try:
-        return enregistrer([copy.deepcopy(LIVRE)])
+        return enregistrer([livre()])
     except OSError:
         return None

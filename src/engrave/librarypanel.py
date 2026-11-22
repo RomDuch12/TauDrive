@@ -850,7 +850,7 @@ class DrawingLibrary(QWidget):
         depart = self.tree.current_folder()
         nom, ok = QInputDialog.getText(
             self, 'Nouveau rayon',
-            'Nom du rayon (« Clients/Renault » pour un sous-rayon) :',
+            'Nom du rayon (« Clients/Exemple » pour un sous-rayon) :',
             text=(depart + '/' if depart else ''))
         if not ok or not nom.strip():
             return

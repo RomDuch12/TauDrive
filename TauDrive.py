@@ -2720,7 +2720,7 @@ def autotest() -> int:
                   _gref['donnees'] == ['A1', 'A1', 'A1']
                   and [_c.data for _c, _ in _mg.pairs(
                       _mg.build(_r0, gabarit=_gref))] == ['A1', 'A1', 'A1']
-                  and _gb.proposees(_g4i) == ['X1', 'B000181', 'X3', 'B000181'],
+                  and _gb.proposees(_g4i) == ['X1', 'B000001', 'X3', 'B000001'],
                   'une case vide ou absente reprend la reference du montage')
 
             # references courtes retenues : le texte ne fond pas
@@ -6426,12 +6426,13 @@ def autotest() -> int:
         # Les cotes d un montage sont celles de la mecanique. Le jour ou
         # l entraxe change, ce doit etre une valeur a corriger, pas un
         # executable a reconstruire.
-        check('gabarit : le montage livre reproduit les cotes en service',
+        check('gabarit : le montage livre donne ses cotes',
               [round(y, 2) for y in _gab.positions(_g_def)]
               == [23.2, 0.2, -22.8]
               and _g_def['code']['largeur_mm'] == 15.0
               and _g_def['code']['module_mm'] == 0.5,
-              'entraxe 23,0 · centre 0,2 · symbole 15x7 + cadre 0,5')
+              'exemple du coeur : entraxe 23,0 · centre 0,2 · symbole 15x7 '
+              '+ cadre 0,5 ; celui de l atelier vient de son plugin')
 
         # un deuxieme montage, sans une ligne de code
         _g4 = _gab.verifier({'nom': 'Essai 4', 'postes': ['A', 'B', 'C', 'D'],
@@ -8162,27 +8163,27 @@ def autotest() -> int:
                   ' → '.join(['Essai auto', 'Essai renommé', '(effacé)']))
 
             # rayons : de vrais sous-dossiers, créés, remplis, vidés
-            drawings.make_folder('Clients/Renault')
+            drawings.make_folder('Clients/Exemple')
             range_ = drawings.add(livres[0].path, 'Essai rayon',
-                                  folder='Clients/Renault')
-            dedans = [e.key() for e in drawings.entries('Clients/Renault')]
+                                  folder='Clients/Exemple')
+            dedans = [e.key() for e in drawings.entries('Clients/Exemple')]
             racine = [e.key() for e in drawings.entries()
                       if not e.delivered and not e.folder]
             plein = True
             try:
-                drawings.drop_folder('Clients/Renault')
+                drawings.drop_folder('Clients/Exemple')
             except ValueError:
                 plein = False
             check('bibliothèque : rayons, un dessin s' + chr(39) + 'y range',
-                  dedans == ['Clients/Renault/Essai rayon'] and not racine
-                  and 'Clients/Renault' in drawings.folders() and not plein,
+                  dedans == ['Clients/Exemple/Essai rayon'] and not racine
+                  and 'Clients/Exemple' in drawings.folders() and not plein,
                   ' · '.join(drawings.folders()))
             remis = drawings.move(range_, '')
-            drawings.drop_folder('Clients/Renault')
+            drawings.drop_folder('Clients/Exemple')
             check('bibliothèque : rayon vidé puis effacé',
                   remis.folder == '' and not remis.path.parent.name.startswith(
-                      'Renault')
-                  and 'Clients/Renault' not in drawings.folders(),
+                      'Exemple')
+                  and 'Clients/Exemple' not in drawings.folders(),
                   ' · '.join(drawings.folders()) or 'plus aucun rayon')
             check('bibliothèque : un rayon ne sort pas de la bibliothèque',
                   drawings.clean_folder('../../Windows') == 'Windows'

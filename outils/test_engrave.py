@@ -22,10 +22,10 @@ from engrave.model import (Circle, Document, PRESET_RECIPES, Path,   # noqa: E40
 from engrave.toolpath import (build_passes, build_shape_pass,   # noqa: E402
                               geometry_key, shape_contours)
 
-#: Process d'essai aux valeurs explicites : les contrôles de l'export (T62,
-#: F80000) ne dépendent pas des préréglages, neutres au cœur libre. Les
+#: Process d'essai aux valeurs explicites : les contrôles de l'export (T7,
+#: F50000) ne dépendent pas des préréglages, neutres au cœur libre. Les
 #: valeurs d'un atelier s'éprouvent dans les essais de son plugin.
-ESSAI_T62 = Recipe('Essai T62', 100.0, 80.0, 100, 80000.0, tool_number=62)
+ESSAI = Recipe('Essai', 100.0, 80.0, 100, 50000.0, tool_number=7)
 
 
 def check(label, got, want) -> bool:
@@ -95,11 +95,11 @@ def main() -> int:
 
     print('\ntrajectoires :')
     doc = Document(name='essai')
-    doc.add(Rect(x=0, y=0, width=20, height=10, recipe=ESSAI_T62))
+    doc.add(Rect(x=0, y=0, width=20, height=10, recipe=ESSAI))
     doc.add(Text(x=0, y=20, text='AB', size_mm=5, recipe=PRESET_RECIPES[0]))
     passes = build_passes(doc)
     r.append(check('une passe par forme', len(passes), 2))
-    r.append(check('recette conservée', passes[0].recipe.tool_number, 62))
+    r.append(check('recette conservée', passes[0].recipe.tool_number, 7))
     r.append(approx('périmètre du rectangle', passes[0].length_mm(), 60.0, 1e-6))
 
     doc2 = Document()
@@ -181,10 +181,10 @@ def main() -> int:
         r.append(check('2 ISO + 1 CLJOB', len(files), 3))
         text = files[0].read_text(encoding='latin1')
         r.append(check('en-tête d\'emprise', text.startswith('(INGOMBROFOGLIO:'), True))
-        r.append(check('outil émis', 'T62 (' in text, True))
+        r.append(check('outil émis', 'T7 (' in text, True))
         r.append(check('G108 puissance/fréquence en Hz',
                        'G108 P100.000 I80000.00' in text, True))
-        r.append(check('vitesse F', '\nF80000\n' in text, True))
+        r.append(check('vitesse F', '\nF50000\n' in text, True))
         r.append(check('pose outil', 'G00Z0.000000' in text, True))
         r.append(check('lève outil', 'G00Z-0.001000' in text, True))
         r.append(check('nombre de G01 (rectangle fermé)', text.count('G01X'), 4))
@@ -200,7 +200,7 @@ def main() -> int:
                        in job, True))
         r.append(check('CLJOB : aucun chemin cl_iso imposé',
                        r'C:\inciwin\cl_iso' in job, False))
-        r.append(check('CLJOB : outil', '<UTENSILE>62</UTENSILE>' in job, True))
+        r.append(check('CLJOB : outil', '<UTENSILE>7</UTENSILE>' in job, True))
 
     print('\ntexte multiligne et alignements :')
     block = textvec.layout('AAA\nBBB\nCCC', 10, '', 'center', 'middle', 1.4)
@@ -1182,6 +1182,10 @@ def main() -> int:
     r.append(check('aucun couple d\'atelier au cœur', couples.workshop(), []))
     r.append(check('couples constructeur gardés (13 formes d\'onde)',
                    len(couples.factory()), 13))
+    from engrave import gabarits
+    r.append(check('gabarit livré : l\'exemple du cœur',
+                   (gabarits.livre()['donnee'], gabarits.livre()['entraxe_mm']),
+                   ('B000001', 23.0)))
 
     print('\nplugins :')
     with tempfile.TemporaryDirectory() as tmp:
@@ -1199,6 +1203,8 @@ def main() -> int:
             "    api.set_recipe_defaults(name='Défaut atelier', tool_number=9)\n"
             "    api.add_couples([(200, 60, 'Client A'), (200, 60, 'Client B')])\n"
             "    api.set_machine('Machine d\\'essai')\n"
+            "    api.set_montage({'nom': 'Montage atelier', 'entraxe_mm': 12.5,\n"
+            "                     'donnee': 'ZZ-1'})\n"
             "    api.add_about('ligne d\\'essai')\n",
             encoding='utf-8')
         casse = pathlib.Path(tmp) / 'atelier_casse'
@@ -1230,6 +1236,19 @@ def main() -> int:
         r.append(check('machine et À propos',
                        (plugins.REGISTRY.machine, plugins.about_lines()[-1]),
                        ("Machine d'essai", "ligne d'essai")))
+        from engrave import gabarits
+        r.append(check('gabarit livré par le plugin, partout',
+                       (gabarits.livre()['nom'],
+                        gabarits.proposees({'postes': ['A', 'B']}),
+                        gabarits.verifier({'nom': 'X'})['entraxe_mm']),
+                       ('Montage atelier', ['ZZ-1', 'ZZ-1'], 12.5)))
+        try:
+            plugins.Api(plugins.REGISTRY, plugins.PluginInfo('x')) \
+                .set_montage({'entraxe_mm': 1.0})
+            sans_nom = False
+        except ValueError:
+            sans_nom = True
+        r.append(check('gabarit sans nom refusé', sans_nom, True))
         r.append(check('À propos dit le plugin en erreur',
                        any('non chargé' in x and 'cassé' in x
                            for x in plugins.about_lines()), True))

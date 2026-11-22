@@ -13,9 +13,9 @@ Reproduit le format observé dans `cl_iso/EASY_LASER_*.ISO` et
     G01X..Y..                      <- gravure
     G00Z-0.001000                  <- lève
 
-C'est la voie qui **fonctionne dès aujourd'hui** : les fichiers produits
-sont exécutables par ClTerm. Le pilote CL90135 natif prendra le relais
-quand le protocole de mouvement aura été capturé.
+Les fichiers produits sont exécutés par ClTerm, le logiciel de commande
+de la machine, avec ses propres sécurités : TauDrive ne pilote pas la
+carte.
 """
 from __future__ import annotations
 

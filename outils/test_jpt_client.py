@@ -62,32 +62,28 @@ def main() -> int:
         r.append(check('aucune alarme', laser.state.get('alarm_active'), []))
         r.append(check('signaux analogiques', laser.state.get('analog'), [32, 32, 32, 32]))
 
-        print('\ngarde-fou d\'émission :')
+        print('\naucune émission possible :')
+        r.append(check('ni set_emission ni set_mo ni allow_emission',
+                       [hasattr(laser, n) for n in
+                        ('set_emission', 'set_mo', '_allow_emission')],
+                       [False, False, False]))
         try:
-            laser.set_emission(True)
-            r.append(check('set_emission refusé sans autorisation', 'aucune erreur', 'EmissionNotAllowed'))
+            laser.send_u16(P.Cmd.LASER_EMISSION, 1)
+            r.append(check('LASER_EMISSION à 1 refusé', 'aucune erreur', 'EmissionNotAllowed'))
         except EmissionNotAllowed:
-            r.append(check('set_emission refusé sans autorisation', True, True))
+            r.append(check('LASER_EMISSION à 1 refusé', True, True))
         try:
-            laser.set_mo(True)
-            r.append(check('set_mo refusé sans autorisation', 'aucune erreur', 'EmissionNotAllowed'))
+            laser.send(P.Cmd.MO_ENABLE, b'\x01\x00')
+            r.append(check('MO_ENABLE à 1 refusé', 'aucune erreur', 'EmissionNotAllowed'))
         except EmissionNotAllowed:
-            r.append(check('set_mo refusé sans autorisation', True, True))
+            r.append(check('MO_ENABLE à 1 refusé', True, True))
         r.append(check('la source n\'a jamais émis', (sim.emission, sim.mo), (False, False)))
 
-        print('\ncoupure d\'urgence (autorisée sans allow_emission) :')
+        print('\ncoupure d\'urgence (toujours permise) :')
+        sim.emission = sim.mo = True          # état d'une source armée ailleurs
         laser.shutdown_emission()
         settle()
         r.append(check('émission et MO à zéro', (sim.emission, sim.mo), (False, False)))
-
-    print('\navec allow_emission=True (sur source simulée uniquement) :')
-    sim2 = SimulatedSource()
-    with JptClient(sim2, allow_emission=True) as laser:
-        r.append(check('set_mo accepté', laser.set_mo(True), True))
-        r.append(check('la source simulée a armé le MO', sim2.mo, True))
-        laser.shutdown_emission()
-        settle()
-        r.append(check('coupure effective', (sim2.emission, sim2.mo), (False, False)))
 
     print('\nabsence d\'écho -> échec après réémissions :')
 

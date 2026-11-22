@@ -93,7 +93,6 @@ hiddenimports = [
     # nos propres paquets : PyInstaller ne les découvre pas tous par
     # analyse statique, plusieurs sont importés tardivement
     *collect_submodules('engrave'),
-    *collect_submodules('cl90135'),
     *collect_submodules('jpt'),
     # importés à la demande dans le code
     'serial',

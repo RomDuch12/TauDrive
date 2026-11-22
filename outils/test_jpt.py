@@ -1,7 +1,7 @@
-"""Validation du codec JPT contre le comportement décompilé.
+"""Validation du codec JPT contre le comportement de la GUI du fabricant.
 
 Aucune capture réelle n'est disponible : les vecteurs de test sont
-construits à partir de la logique lue dans JPT_Laser.exe.
+construits à partir de ce que la GUI livrée avec la source émet.
 
 Usage : python test_jpt.py
 """
@@ -28,11 +28,11 @@ def check(label: str, got, want) -> bool:
 def main() -> int:
     results = []
 
-    print('trame émise (SerialPortWrite + SendDataListAdd) :')
-    # SendData(9, 1) -> cmd 09 00, len 02, data 01 00, encadré par $ et *
-    results.append(check('LASER_EMISSION=1',
-                         J.encode_u16(J.Cmd.LASER_EMISSION, 1).hex(' '),
-                         '24 09 00 02 01 00 2a'))
+    print('trame émise :')
+    # commande 9 à 0 (couper) -> cmd 09 00, len 02, data 00 00, entre $ et *
+    results.append(check('LASER_EMISSION=0 (couper)',
+                         J.encode_u16(J.Cmd.LASER_EMISSION, 0).hex(' '),
+                         '24 09 00 02 00 00 2a'))
     results.append(check('POLL',
                          J.encode_u16(J.Cmd.POLL, 1).hex(' '),
                          '24 51 00 02 01 00 2a'))

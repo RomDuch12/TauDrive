@@ -2,7 +2,8 @@
 
 Ce qui change pour l'opérateur, version par version (les plus récentes en
 bas). Le détail de chaque changement, ses mesures et ses contrôles sont
-dans `reference/specification.md`, à l'entrée EX indiquée.
+dans la spécification de travail (`reference/specification.md`, non
+publiée), à l'entrée EX indiquée.
 
 Jusqu'à 1.0.267, le dernier chiffre était le numéro de la dernière entrée
 EX. Depuis 1.268.0, comme VectorDrive, le chiffre du milieu monte de 1 à
@@ -66,3 +67,18 @@ chaque version publiée.
   (`TauDrive-NOM-x.y.z-portable.zip`) le porte et se comporte exactement
   comme la version précédente ; *? ▸ À propos* nomme les plugins chargés.
 - Les documents se relisent comme avant ; le format ne change pas.
+
+### v1.271.0 — aucune émission laser possible ; montage de l'atelier en plugin
+
+- Le panneau *Source laser* lit l'état de la source et **coupe**
+  l'émission ; il ne peut plus la déclencher, même par un appel direct :
+  le client série refuse toute commande d'émission autre que l'arrêt
+  (EX-271).
+- Le **gabarit du montage en service** vient du plugin de l'atelier.
+  Sans plugin, TauDrive propose un exemple à trois postes, référence
+  `B000001`. L'édition de l'atelier se comporte exactement comme avant.
+- Exemple de rayon de la bibliothèque : « Clients/Exemple ».
+- Le module de trame de la carte CNC, dont l'application ne se sert pas,
+  n'est plus embarqué.
+- Le dépôt public a son propre README : ce que fait TauDrive, sécurité,
+  indépendance vis-à-vis des fabricants, plugins.

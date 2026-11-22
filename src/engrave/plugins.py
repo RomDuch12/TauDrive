@@ -13,6 +13,7 @@ rangé dans `REGISTRY`, que le cœur consulte :
 * process : préréglages et process par matière (`model.factory_recipes`),
   valeurs par défaut d'une process (`model.default_recipe`) ;
 * semence du premier lancement (`semence.dossier`) ;
+* gabarit de montage livré, celui du montage en service (`gabarits.livre`) ;
 * magasin d'outils extrait de la machine (`toolstore.bundled_path`) ;
 * couples fréquence-impulsion d'atelier, nommés (`couples.workshop`) ;
 * dessins livrés (`drawings.delivered_dir`) ;
@@ -82,6 +83,7 @@ class Registry:
     tool_store: pathlib.Path | None = None
     couples: list = field(default_factory=list)              # couples.Couple
     drawings_dir: pathlib.Path | None = None
+    montage: dict | None = None                              # gabarit livré
     machine: str = ''
     about: list = field(default_factory=list)
     autotests: list = field(default_factory=list)            # (nom, fonction(check))
@@ -147,6 +149,16 @@ class Api:
     def set_drawings_dir(self, path) -> None:
         """Dossier des dessins livrés (bibliothèque de dessins)."""
         self._r.drawings_dir = pathlib.Path(path)
+
+    def set_montage(self, gabarit: dict) -> None:
+        """Gabarit de montage livré : celui du montage en service à
+        l'atelier. Il remplace l'exemple du cœur partout où le cœur s'en
+        sert — repli sans `montages.json`, valeurs d'un gabarit écrit à
+        la main, référence proposée à la pose."""
+        import copy
+        if not isinstance(gabarit, dict) or not gabarit.get('nom'):
+            raise ValueError('un gabarit de montage est un objet avec un nom')
+        self._r.montage = copy.deepcopy(gabarit)
 
     # --- présentation et contrôles ------------------------------------------
     def set_machine(self, label: str) -> None:

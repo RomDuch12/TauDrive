@@ -67,7 +67,7 @@ def defaut() -> dict:
 
 
 #: Donnée proposée quand rien n'est saisi.
-DEFAULT_DATA = 'B000181'
+DEFAULT_DATA = 'B000001'
 
 
 def build(recipe: Recipe, donnees=None, *, gabarit: dict | None = None,

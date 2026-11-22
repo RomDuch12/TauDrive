@@ -4,4 +4,4 @@
 #: à chaque publication (`python outils/publier.py --monter`). La fenêtre
 #: « À propos », les propriétés Windows des exécutables (`version_info.py`)
 #: et les noms des archives (`outils/publier.py`) le lisent ici.
-__version__ = '1.270.0'
+__version__ = '1.271.0'

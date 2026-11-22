@@ -6,14 +6,14 @@ Bâti sur `jpt.protocol`. Deux transports :
   * `SimulatedSource`   — source factice, pour développer sans matériel
 
 >>> SÉCURITÉ <<<
-`set_emission()` et `set_mo()` sont les deux seules méthodes qui font
-émettre un laser de **classe 4**. Elles refusent de fonctionner tant que le
-client n'a pas été construit avec `allow_emission=True` — un choix que
-l'appelant doit poser explicitement, en connaissance de cause. Toutes les
+Ce client **ne fait jamais émettre** le laser de classe 4. Les deux
+commandes d'émission (`LASER_EMISSION`, `MO_ENABLE`) ne partent qu'à 0,
+pour couper (`shutdown_emission`) ; toute autre valeur est refusée
+(`EmissionNotAllowed`), y compris par `send` et `send_u16`. Toutes les
 autres méthodes lisent l'état ou règlent des paramètres sans émission.
 
-Le garde-fou logiciel ne remplace **jamais** la chaîne d'interlocks
-matérielle (contact de cabine, arrêts d'urgence).
+Ce refus ne remplace **jamais** la chaîne d'interlocks matérielle
+(contact de cabine, arrêts d'urgence).
 """
 from __future__ import annotations
 
@@ -28,7 +28,11 @@ log = logging.getLogger(__name__)
 
 
 class EmissionNotAllowed(RuntimeError):
-    """Tentative d'émission sur un client construit sans `allow_emission`."""
+    """Commande d'émission à une autre valeur que 0 : refusée, toujours."""
+
+
+#: Commandes qui font émettre le laser : elles ne partent qu'à 0.
+EMISSION_CMDS = frozenset((int(P.Cmd.LASER_EMISSION), int(P.Cmd.MO_ENABLE)))
 
 
 class AckTimeout(TimeoutError):
@@ -158,11 +162,10 @@ class JptClient:
             print(laser.state)
     """
 
-    def __init__(self, transport: Transport, *, allow_emission: bool = False,
+    def __init__(self, transport: Transport, *,
                  ack_timeout: float = P.ACK_TIMEOUT_MS / 1000,
                  retries: int = P.MAX_RETRIES) -> None:
         self._tr = transport
-        self._allow_emission = allow_emission
         self._ack_timeout = ack_timeout
         self._retries = retries
 
@@ -266,8 +269,15 @@ class JptClient:
 
         Réémet jusqu'à `retries` fois, comme le fait la GUI d'origine.
         Ne lève pas si `expect_ack` est faux (cas du POLL, dont l'écho
-        n'est pas garanti — voir protocole-jpt.md §7).
+        n'est pas garanti).
+
+        Une commande d'émission (`EMISSION_CMDS`) ne part qu'à 0 : toute
+        autre valeur lève `EmissionNotAllowed`, sans rien écrire.
         """
+        if int(cmd) in EMISSION_CMDS and any(data):
+            raise EmissionNotAllowed(
+                f'commande {int(cmd)} refusée : TauDrive ne fait jamais '
+                'émettre le laser (classe 4), il ne sait que couper.')
         frame = P.encode(cmd, data)
         for attempt in range(1, self._retries + 1):
             with self._lock:
@@ -327,8 +337,8 @@ class JptClient:
     def set_pulse_width_ns(self, ns: int) -> bool:
         """Largeur d'impulsion, **en nanosecondes** (u16).
 
-        Cohérent avec les recettes machine (`DImp=100ns`, `120ns`, `200ns`
-        dans ReportIncisione.txt) et avec le « <200 ns » du manuel.
+        Cohérent avec les process de la machine (100, 120, 200 ns) et avec
+        le « <200 ns » du manuel.
         """
         value = int(round(ns))
         if not 0 <= value <= 0xFFFF:
@@ -344,28 +354,13 @@ class JptClient:
     def set_red_pointer(self, on: bool) -> bool:
         return self.send_u16(P.Cmd.RED_POINTER, int(bool(on)))
 
-    # -- ÉMISSION : classe 4 ----------------------------------------------
-
-    def _guard(self, what: str) -> None:
-        if not self._allow_emission:
-            raise EmissionNotAllowed(
-                f'{what} exige JptClient(..., allow_emission=True). '
-                'Cette commande fait émettre un laser de classe 4.')
-
-    def set_mo(self, on: bool) -> bool:
-        """Oscillateur maître (MO / PA). **Émission classe 4.**"""
-        self._guard('set_mo')
-        return self.send_u16(P.Cmd.MO_ENABLE, int(bool(on)))
-
-    def set_emission(self, on: bool) -> bool:
-        """Autorisation d'émission. **Émission classe 4.**"""
-        self._guard('set_emission')
-        return self.send_u16(P.Cmd.LASER_EMISSION, int(bool(on)))
+    # -- ÉMISSION : classe 4 — couper seulement ---------------------------
 
     def shutdown_emission(self) -> None:
-        """Coupe émission et MO. Utilisable sans `allow_emission`.
+        """Coupe émission et MO, puis rend la main à la GUI.
 
-        Séquence reprise de `IsClosedRs232` de la GUI d'origine.
+        Séquence d'arrêt de la GUI du fabricant. C'est le seul usage des
+        commandes d'émission : à 0.
         """
         self.send_u16(P.Cmd.LASER_EMISSION, 0)
         time.sleep(0.1)

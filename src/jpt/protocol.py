@@ -1,17 +1,17 @@
 """Protocole série de la source JPT / JPT laser source serial protocol.
 
-Source : décompilation de `JPTLaserGUI20220104/JPT_Laser.exe` (.NET 4.5.2,
-livré avec son PDB complet). Classes `JPT_Laser.RS232Class.RS232_send`,
-`JPT_Laser.MainWindow` (`SerialPortWrite`, `ReceivedDataHandler`) et les
-quatre `RS232_Data_processing` des ViewModels.
+Établi pour l'interopérabilité de TauDrive avec la source de la machine
+(art. L122-6-1 du code de la propriété intellectuelle), à partir de la GUI
+livrée avec la source. Les notes de travail ne sont pas publiées.
 
 Liaison sur la machine : **COM4, 57600 bauds, 8N1** — `Config/default.conf`
 de la GUI JPT et `P_06_01_01_018_02 = 3` (index 0-based dans COM1…COM24).
 
 >>> ATTENTION <<<
-Les commandes LASER_EMISSION (9) et MO_ENABLE (10) déclenchent l'émission
-d'un laser de classe 4. Tout le reste de ce module est en lecture ou en
-réglage de paramètre, sans émission.
+Les commandes LASER_EMISSION (9) et MO_ENABLE (10) commandent l'émission
+d'un laser de classe 4. TauDrive ne les envoie qu'à 0, pour **couper**
+(`JptClient.shutdown_emission`) ; le client refuse toute autre valeur.
+Tout le reste de ce module est en lecture ou en réglage de paramètre.
 """
 from __future__ import annotations
 

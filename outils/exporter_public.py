@@ -8,10 +8,15 @@ Comme pour VectorDrive :
   (`PRIVES` : spécification de travail, notes d'analyse des protocoles et
   des fichiers de la machine, outils d'extraction, données relevées chez
   les fournisseurs, fichiers de clients, essais d'atelier) ;
+- publie `README.public.md` sous le nom `README.md` (`PUBLIES_SOUS`) : le
+  README du dépôt de travail, qui suit l'avancement et pointe vers les
+  documents privés, ne sort pas ;
 - refuse l'export si un fichier publié est un fichier de production
-  (programme machine, dessin) ou contient un des mots du fichier
+  (programme machine, dessin), contient un des mots du fichier
   `--interdits` (un par ligne : clients, matricule, chemins du poste… ;
-  le fichier lui-même reste privé, dans le dépôt du plugin de l'atelier) ;
+  le fichier lui-même reste privé, dans le dépôt du plugin de l'atelier),
+  ou si un document publié renvoie par un lien vers un fichier qui ne
+  l'est pas ;
 - dans DOSSIER_PUBLIC : dépôt git neuf au premier export, puis un commit
   par export — l'historique du dépôt de travail n'est jamais publié.
 
@@ -25,6 +30,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import pathlib
+import posixpath
 import re
 import shutil
 import subprocess
@@ -35,8 +41,17 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 #: documents de travail qui ne sortent pas (motifs fnmatch, chemins relatifs)
 PRIVES = [
     '.claude/*',
+    # README de travail : avancement, captures, documents privés
+    # (le public reçoit README.public.md, voir PUBLIES_SOUS)
+    'README.md',
     # spécification de travail : décisions, essais et fichiers d'atelier
     'reference/specification.md',
+    # journal de développement tenu à l'atelier, et son montage en service
+    'reference/export-iso.md',
+    'reference/montage-3dm.md',
+    # protocole de la carte CNC : relevé pour l'étude, l'application ne
+    # s'en sert pas (TauDrive écrit des fichiers que ClTerm exécute)
+    'src/cl90135/*',
     # notes d'analyse des protocoles et des fichiers de la machine
     'reference/protocole-*',
     'reference/format-cmd.md',
@@ -70,12 +85,21 @@ PRIVES = [
     '*.pdf',
     '*.jpg',
 ]
+#: fichiers publiés sous un autre nom (nom dans le dépôt de travail → nom publié)
+PUBLIES_SOUS = {'README.public.md': 'README.md'}
 AUTEUR = 'RomDuch <romduch@gmail.com>'
 #: programmes machine et parcours (jamais publiés : ce sont des fichiers de production)
 PROGRAMMES = re.compile(r'\.(iso|cljob|cmd|nc|cnc|tap|ngc|plt|hpgl|\d{3})$', re.I)
 #: dessins (jamais publiés : TauDrive libre n'en livre aucun)
 DESSINS = re.compile(r'\.(dxf|dwg|taudrive|eps|ai|svg|pdf)$', re.I)
 _VERSION = re.compile(r"__version__ = '(\d+\.\d+\.\d+)'")
+#: lien Markdown : [texte](cible) — la cible jusqu'à l'ancre ou au titre
+_LIEN = re.compile(r'\]\(\s*<?([^)\s#>]+)')
+
+
+def published_name(f: str) -> str:
+    """Nom sous lequel un fichier du dépôt de travail est publié."""
+    return PUBLIES_SOUS.get(f, f)
 
 
 def publishable() -> list[str]:
@@ -113,12 +137,37 @@ def _text(path: pathlib.Path) -> str | None:
         return data.decode('latin-1')
 
 
+def broken_links(files: list[str]) -> list[str]:
+    """Liens des documents publiés vers un fichier qui ne l'est pas : une
+    note privée nommée, et un lien mort pour le lecteur."""
+    publies = {published_name(f) for f in files}
+    hits = []
+    for f in files:
+        nom = published_name(f)
+        if not nom.endswith('.md'):
+            continue
+        text = _text(ROOT / f) or ''
+        for m in _LIEN.finditer(text):
+            cible = m.group(1)
+            if re.match(r'[a-z][a-z0-9+.-]*:', cible, re.I):   # http:, mailto:…
+                continue
+            chemin = posixpath.normpath(
+                posixpath.join(posixpath.dirname(nom), cible))
+            if chemin not in publies and not any(
+                    p.startswith(chemin.rstrip('/') + '/') for p in publies):
+                line = text.count('\n', 0, m.start()) + 1
+                hits.append(f'{f}:{line} : lien vers un fichier non publié ({cible})')
+    return hits
+
+
 def scan(files: list[str], words: list[str]) -> list[str]:
-    """Fichiers (nom ou contenu) où paraît un mot interdit, et fichiers de
-    production (programmes, parcours, dessins) qui n'ont rien à publier."""
+    """Fichiers (nom ou contenu) où paraît un mot interdit, fichiers de
+    production (programmes, parcours, dessins) qui n'ont rien à publier,
+    et liens vers des fichiers non publiés."""
     pats = [re.compile(re.escape(w), re.I) for w in words if w.strip()]
     hits = [f'{f} : fichier de production (programme, parcours ou dessin)'
             for f in production_files(files)]
+    hits += broken_links(files)
     for f in files:
         for p in pats:
             if p.search(f):
@@ -148,7 +197,7 @@ def export(dest: pathlib.Path, words: list[str], message: str) -> int:
             continue
         old.unlink()
     for f in files:
-        out = dest / f
+        out = dest / published_name(f)
         out.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / f, out)
 

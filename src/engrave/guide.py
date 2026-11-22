@@ -109,10 +109,9 @@ touchent plus et la gravure devient pointillée.</p>
 propre</b>, 1 à la limite du pointillé. TauDrive calcule ce recouvrement
 pour chaque recommandation, et le signale quand il descend sous 2.</p>
 
-<p class="note">Cela explique le magasin de la machine sans qu'on ait à le
-supposer : les outils à 200 m/min tournent tous à 120 kHz ou plus, et T62
-grave à 80 m/min sous 80 kHz — pas de 0,0167 mm, soit un recouvrement de
-2×.</p>
+<p class="note">C'est ce qu'on retrouve dans un magasin d'outils bien
+réglé : à 200 m/min, il faut 120 kHz ou plus ; à 80 m/min, 80 kHz
+suffisent — pas de 0,0167 mm, soit un recouvrement de 2×.</p>
 
 <h2>Le rapport cyclique</h2>
 
