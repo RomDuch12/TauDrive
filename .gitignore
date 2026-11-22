@@ -1,0 +1,36 @@
+# --- dossiers fournisseur, en lecture seule (EX-01) -------------------------
+#
+# Rien n'y est jamais écrit, et rien n'y est versionné : 2,2 Go de
+# référence qui ne changent pas. Ils sont rangés dans `fournisseurs/` —
+# Cielle sur pc controller, Incicam 2025 sp50, Tau_Smart (machine),
+# ST0018 made in France — avec `Export/`, les échanges de travail.
+fournisseurs/
+
+# --- produits de construction ----------------------------------------------
+#
+# Reconstructibles d'une commande. Les versionner ferait grossir le dépôt
+# de 400 Mo à chaque build. Les versions zippées (`dist/portable/`, voir
+# `outils/publier.py`) restent hors git elles aussi.
+dist/
+dist-*/
+build/
+__pycache__/
+*.pyc
+*.pyo
+
+# --- journaux machine -------------------------------------------------------
+#
+# 921 Mo de captures série datées. Git n'est pas l'outil : elles ne se
+# comparent pas, ne se fusionnent pas, et ne changent jamais une fois
+# écrites. **Elles demandent leur propre sauvegarde.**
+captures/
+
+# --- travail et échanges ----------------------------------------------------
+Export/
+# plugins d'atelier posés pour le développement (voir engrave/plugins.py)
+plugins/
+*.taudrive-reglages
+
+# ressources de version, regenerees a chaque construction
+version_Tau*.txt
+settings.local.json

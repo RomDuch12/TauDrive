@@ -1,0 +1,23 @@
+TauDrive — Copyright (c) 2026 RomDuch, with Claude <romduch@gmail.com>
+
+TauDrive est distribué sous double licence, au choix de qui le reprend :
+
+  - licence MIT (fichier LICENSE-MIT)
+  - licence Apache, version 2.0 (fichier LICENSE-APACHE)
+
+SPDX-License-Identifier: MIT OR Apache-2.0
+
+La double licence vaut pour TauDrive et TauConvert : leur code, leur
+documentation, leur logo et leurs icônes.
+
+Elle ne s'étend pas aux données relevées dans les logiciels et sur la
+machine des fournisseurs — le dossier extrait/ (dictionnaire des
+paramètres, magasin d'outils) et le dossier fournisseurs/, hors dépôt —,
+qui restent à leurs ayants droit.
+
+Elle ne s'étend pas non plus au plugin d'un atelier ni aux données qu'il
+apporte (process, semence, magasin d'outils, dessins livrés) : ils
+restent à leur auteur.
+
+Les composants tiers gardent leurs propres licences (THIRD_PARTY_NOTICES.md,
+dossier « licences »).
